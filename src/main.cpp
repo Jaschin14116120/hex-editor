@@ -43,6 +43,33 @@ static bool loadFileBinary(const string& filename, vector<unsigned char>& outBuf
 }
 
 /*
+    Hilfsfunktion: Speichert den kompletten Bytepuffer wieder in eine Datei (Binärmodus).
+    Rückgabe:
+      - true  => Datei erfolgreich gespeichert
+      - false => Fehler (z.B. keine Schreibrechte, Pfad ungültig)
+*/
+static bool saveFileBinary(const string& filename, const vector<unsigned char>& buffer)
+{
+    // Hinweis: ios::trunc sorgt dafür, dass die Datei überschrieben wird
+    ofstream file(filename, ios::binary | ios::trunc);
+
+    if (!file)
+        return false;
+
+    if (!buffer.empty())
+    {
+        file.write(reinterpret_cast<const char*>(buffer.data()),
+                   static_cast<streamsize>(buffer.size()));
+    }
+
+    // Schreibfehler abfangen (z.B. "Datenträger voll")
+    if (!file.good())
+        return false;
+
+    return true;
+}
+
+/*
     Ausgabe-Funktion: Gibt einen Ausschnitt des Bytepuffers tabellarisch aus.
 
     Parameter:
@@ -172,6 +199,7 @@ static bool parseOffset(const string& token, size_t& outOffset)
     // Jetzt versuchen wir zu konvertieren
     try
     {
+        // stoull kann mit Basis arbeiten
         unsigned long long val = stoull(numberPart, nullptr, base);
         outOffset = static_cast<size_t>(val);
         return true;
@@ -278,13 +306,16 @@ static bool parseByteValue(const string& token, unsigned char& outValue)
 static void printHelp()
 {
     cout << "Befehle:\n"
-         << "  view                  - aktuelle Seite anzeigen\n"
-         << "  next                  - naechste Seite\n"
-         << "  prev                  - vorherige Seite\n"
-         << "  goto <offset>          - zu Offset springen (dezimal oder hex, z.B. 0x10)\n"
-         << "  set <offset> <wert>    - Byte setzen (dez/hex/bin/'A')\n"
-         << "  help                  - diese Hilfe anzeigen\n"
-         << "  quit                  - Programm beenden\n\n";
+         << "  view                   - aktuelle Seite anzeigen\n"
+         << "  next                   - naechste Seite\n"
+         << "  prev                   - vorherige Seite\n"
+         << "  goto <offset>           - zu Offset springen (dezimal oder hex, z.B. 0x10)\n"
+         << "  set <offset> <wert>     - Byte setzen (dez/hex/bin/'A')\n"
+         << "  save                   - Datei speichern (ueberschreibt die Ausgangsdatei)\n"
+         << "  saveas <dateiname>      - Datei unter neuem Namen speichern\n"
+         << "  status                 - Status anzeigen (Datei/Offset/ungespeichert)\n"
+         << "  help                   - diese Hilfe anzeigen\n"
+         << "  quit                   - Programm beenden\n\n";
 }
 
 int main(int argc, char* argv[])
@@ -366,6 +397,13 @@ int main(int argc, char* argv[])
         else if (cmd == "help")
         {
             printHelp();
+        }
+        else if (cmd == "status")
+        {
+            cout << "Datei:   " << filename << "\n";
+            cout << "Groesse: " << buffer.size() << " Bytes\n";
+            cout << "Offset:  " << currentOffset << "\n";
+            cout << "Aenderungen ungespeichert: " << (dirty ? "JA" : "NEIN") << "\n\n";
         }
         else if (cmd == "view")
         {
@@ -471,6 +509,43 @@ int main(int argc, char* argv[])
 
             // Seite neu anzeigen, damit man die Aenderung sofort sieht
             printTable(buffer, currentOffset, bytesPerLine, linesPerPage);
+        }
+        else if (cmd == "save")
+        {
+            if (!dirty)
+            {
+                cout << "Hinweis: Keine Aenderungen vorhanden. (dirty = false)\n";
+                continue;
+            }
+
+            if (!saveFileBinary(filename, buffer))
+            {
+                cout << "Fehler: Datei konnte nicht gespeichert werden (keine Rechte / Pfad ungueltig?).\n";
+                continue;
+            }
+
+            dirty = false;
+            cout << "Datei gespeichert: " << filename << "\n\n";
+        }
+        else if (cmd == "saveas")
+        {
+            string newName;
+            iss >> newName;
+
+            if (newName.empty())
+            {
+                cout << "Fehler: Bitte einen Dateinamen angeben. Beispiel: saveas neue_datei.bin\n";
+                continue;
+            }
+
+            if (!saveFileBinary(newName, buffer))
+            {
+                cout << "Fehler: Datei konnte nicht gespeichert werden (keine Rechte / Pfad ungueltig?).\n";
+                continue;
+            }
+
+            dirty = false;
+            cout << "Datei gespeichert als: " << newName << "\n\n";
         }
         else
         {
