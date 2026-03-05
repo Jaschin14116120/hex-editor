@@ -7,6 +7,8 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <limits>
+#include <cstdint>
 
 using namespace std;
 
@@ -170,9 +172,98 @@ static bool parseOffset(const string& token, size_t& outOffset)
     // Jetzt versuchen wir zu konvertieren
     try
     {
-        // stoull kann mit Basis arbeiten
         unsigned long long val = stoull(numberPart, nullptr, base);
         outOffset = static_cast<size_t>(val);
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+/*
+    Hilfsfunktion: Parst einen Byte-Wert (0..255) aus verschiedenen Eingabeformen.
+
+    Unterstützt:
+      - Dezimal: "65"
+      - Hex:     "0x41" oder "41" (wenn Buchstaben A-F enthalten sind)
+      - Binär:   "0b01000001"
+      - Zeichen: "'A'"  (genau ein Zeichen in Hochkommas)
+
+    Rückgabe:
+      - true/false ob erfolgreich
+*/
+static bool parseByteValue(const string& token, unsigned char& outValue)
+{
+    string t = trim(token);
+    if (t.empty())
+        return false;
+
+    // 1) Zeichenliteral: 'A'
+    if (t.size() == 3 && t.front() == '\'' && t.back() == '\'')
+    {
+        outValue = static_cast<unsigned char>(t[1]);
+        return true;
+    }
+
+    // 2) Binär: 0b10101010
+    if (t.size() > 2 && t[0] == '0' && (t[1] == 'b' || t[1] == 'B'))
+    {
+        string bits = t.substr(2);
+
+        // Erlaubt sind nur '0' und '1', und maximal 8 Bits
+        if (bits.empty() || bits.size() > 8)
+            return false;
+
+        for (char c : bits)
+            if (c != '0' && c != '1')
+                return false;
+
+        unsigned int val = 0;
+        for (char c : bits)
+        {
+            val = (val << 1) | (c == '1' ? 1u : 0u);
+        }
+
+        outValue = static_cast<unsigned char>(val);
+        return true;
+    }
+
+    // 3) Hex mit 0x
+    bool has0x = (t.size() > 2 && t[0] == '0' && (t[1] == 'x' || t[1] == 'X'));
+
+    // 4) Hex ohne 0x, wenn A-F vorkommt
+    bool hasHexLetters = false;
+    for (char c : t)
+    {
+        if ((c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+        {
+            hasHexLetters = true;
+            break;
+        }
+    }
+
+    int base = 10;
+    string numberPart = t;
+
+    if (has0x)
+    {
+        base = 16;
+        numberPart = t.substr(2);
+    }
+    else if (hasHexLetters)
+    {
+        base = 16;
+    }
+
+    try
+    {
+        unsigned long long val = stoull(numberPart, nullptr, base);
+        if (val > 255ULL)
+            return false;
+
+        outValue = static_cast<unsigned char>(val);
         return true;
     }
     catch (...)
@@ -187,12 +278,13 @@ static bool parseOffset(const string& token, size_t& outOffset)
 static void printHelp()
 {
     cout << "Befehle:\n"
-         << "  view                 - aktuelle Seite anzeigen\n"
-         << "  next                 - naechste Seite\n"
-         << "  prev                 - vorherige Seite\n"
-         << "  goto <offset>         - zu Offset springen (dezimal oder hex, z.B. 0x10)\n"
-         << "  help                 - diese Hilfe anzeigen\n"
-         << "  quit                 - Programm beenden\n\n";
+         << "  view                  - aktuelle Seite anzeigen\n"
+         << "  next                  - naechste Seite\n"
+         << "  prev                  - vorherige Seite\n"
+         << "  goto <offset>          - zu Offset springen (dezimal oder hex, z.B. 0x10)\n"
+         << "  set <offset> <wert>    - Byte setzen (dez/hex/bin/'A')\n"
+         << "  help                  - diese Hilfe anzeigen\n"
+         << "  quit                  - Programm beenden\n\n";
 }
 
 int main(int argc, char* argv[])
@@ -235,6 +327,7 @@ int main(int argc, char* argv[])
     const size_t pageSize = bytesPerLine * linesPerPage;
 
     size_t currentOffset = 0;          // Start bei 0
+    bool dirty = false;                // true, wenn Buffer geaendert wurde, aber noch nicht gespeichert ist
 
     // -----------------------------
     // 4) Kommando-Schleife (CLI)
@@ -264,6 +357,10 @@ int main(int argc, char* argv[])
 
         if (cmd == "quit" || cmd == "exit")
         {
+            // Hinweis, falls ungespeicherte Aenderungen vorhanden sind
+            if (dirty)
+                cout << "Hinweis: Es gibt ungespeicherte Aenderungen.\n";
+
             break;
         }
         else if (cmd == "help")
@@ -319,6 +416,60 @@ int main(int argc, char* argv[])
             }
 
             currentOffset = target;
+            printTable(buffer, currentOffset, bytesPerLine, linesPerPage);
+        }
+        else if (cmd == "set")
+        {
+            // Erwartet: set <offset> <wert>
+            // Beispiele:
+            //   set 16 FF
+            //   set 16 255
+            //   set 16 0x41
+            //   set 16 0b01000001
+            //   set 16 'A'
+            string offToken;
+            string valToken;
+            iss >> offToken >> valToken;
+
+            if (offToken.empty() || valToken.empty())
+            {
+                cout << "Fehler: Nutzung: set <offset> <wert>\n";
+                cout << "Beispiele: set 16 FF | set 16 255 | set 16 0b10101010 | set 16 'A'\n";
+                continue;
+            }
+
+            size_t off = 0;
+            if (!parseOffset(offToken, off))
+            {
+                cout << "Fehler: Offset konnte nicht gelesen werden.\n";
+                continue;
+            }
+
+            if (off >= buffer.size())
+            {
+                cout << "Fehler: Offset liegt ausserhalb der Datei.\n";
+                continue;
+            }
+
+            unsigned char newVal = 0;
+            if (!parseByteValue(valToken, newVal))
+            {
+                cout << "Fehler: Wert konnte nicht gelesen werden (erwartet: dez/hex/bin/'A').\n";
+                continue;
+            }
+
+            // Aenderung durchfuehren
+            unsigned char oldVal = buffer[off];
+            buffer[off] = newVal;
+            dirty = true;
+
+            // Rueckmeldung an den Benutzer (nachvollziehbar / testbar)
+            cout << "Byte geaendert bei Offset " << off << ": "
+                 << "0x" << hex << setw(2) << setfill('0') << (int)oldVal
+                 << " -> 0x" << setw(2) << (int)newVal
+                 << dec << setfill(' ') << "\n";
+
+            // Seite neu anzeigen, damit man die Aenderung sofort sieht
             printTable(buffer, currentOffset, bytesPerLine, linesPerPage);
         }
         else
