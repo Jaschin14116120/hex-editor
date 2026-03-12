@@ -25,7 +25,7 @@ Die Software ist modular aufgebaut und orientiert sich an den in der Konzeptions
 
 Modul | Aufgabe
 ----- | ------
-main.cpp |   Benutzeroberfläche (CLI) und Befehlssteuerung
+main |   Benutzeroberfläche (CLI) und Befehlssteuerung
 fileio |   Laden und Speichern von Binärdateien
 formatter |   Darstellung der Bytes in HEX / BIN / ASCII
 editor | B  earbeitung einzelner Bytes im Speicherpuffer
