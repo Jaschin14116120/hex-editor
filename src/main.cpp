@@ -11,6 +11,7 @@
 
 #include "fileio.h"
 #include "formatter.h"
+#include "editor.h"
 
 using namespace std;
 
@@ -375,9 +376,16 @@ int main(int argc, char* argv[])
                 continue;
             }
 
-            // Aenderung durchfuehren
-            unsigned char oldVal = buffer[off];
-            buffer[off] = newVal;
+            // Aenderung wird jetzt ueber das ausgelagerte Editor-Modul durchgefuehrt.
+            // Die eigentliche Manipulation des Puffers findet damit nicht mehr direkt in
+            // main.cpp statt, sondern in editor.cpp.
+            unsigned char oldVal = 0;
+            if (!setByteValue(buffer, off, newVal, oldVal))
+            {
+                cout << "Fehler: Byte konnte nicht geaendert werden.\n";
+                continue;
+            }
+
             dirty = true;
 
             // Rueckmeldung an den Benutzer (nachvollziehbar / testbar)
