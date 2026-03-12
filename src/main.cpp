@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <iomanip>
 #include <bitset>
@@ -10,6 +9,8 @@
 #include <limits>
 #include <cstdint>
 
+#include "fileio.h"
+
 using namespace std;
 
 /*
@@ -19,54 +20,6 @@ using namespace std;
 static bool isPrintable(unsigned char c)
 {
     return std::isprint(static_cast<int>(c)) != 0;
-}
-
-/*
-    Hilfsfunktion: Liest eine komplette Datei im Binärmodus in einen Bytepuffer.
-    Rückgabe:
-      - true  => Datei erfolgreich geladen
-      - false => Fehler (z.B. Datei nicht vorhanden / keine Rechte)
-*/
-static bool loadFileBinary(const string& filename, vector<unsigned char>& outBuffer)
-{
-    ifstream file(filename, ios::binary);
-
-    if (!file)
-        return false;
-
-    outBuffer.assign(
-        (istreambuf_iterator<char>(file)),
-        istreambuf_iterator<char>()
-    );
-
-    return true;
-}
-
-/*
-    Hilfsfunktion: Speichert den kompletten Bytepuffer wieder in eine Datei (Binärmodus).
-    Rückgabe:
-      - true  => Datei erfolgreich gespeichert
-      - false => Fehler (z.B. keine Schreibrechte, Pfad ungültig)
-*/
-static bool saveFileBinary(const string& filename, const vector<unsigned char>& buffer)
-{
-    // Hinweis: ios::trunc sorgt dafür, dass die Datei überschrieben wird
-    ofstream file(filename, ios::binary | ios::trunc);
-
-    if (!file)
-        return false;
-
-    if (!buffer.empty())
-    {
-        file.write(reinterpret_cast<const char*>(buffer.data()),
-                   static_cast<streamsize>(buffer.size()));
-    }
-
-    // Schreibfehler abfangen (z.B. "Datenträger voll")
-    if (!file.good())
-        return false;
-
-    return true;
 }
 
 /*
@@ -362,6 +315,9 @@ int main(int argc, char* argv[])
     // -----------------------------
     // 2) Datei laden
     // -----------------------------
+    // Das eigentliche Laden wird nun nicht mehr direkt in main.cpp implementiert,
+    // sondern ueber das ausgelagerte Modul fileio.cpp abgewickelt.
+    // main.cpp kennt dadurch nur noch die Funktionsschnittstelle aus fileio.h.
     vector<unsigned char> buffer;
     if (!loadFileBinary(filename, buffer))
     {
@@ -540,6 +496,7 @@ int main(int argc, char* argv[])
                 continue;
             }
 
+            // Speichern erfolgt nun ebenfalls ueber das ausgelagerte File-I/O-Modul.
             if (!saveFileBinary(filename, buffer))
             {
                 cout << "Fehler: Datei konnte nicht gespeichert werden (keine Rechte / Pfad ungueltig?).\n";
