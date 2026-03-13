@@ -1,6 +1,4 @@
-# Create the README.md file again
-
-content = """# HEX / BIN / ASCII Datei-Editor
+# HEX / BIN / ASCII Datei-Editor
 
 ## Projektbeschreibung
 
@@ -145,4 +143,3 @@ Ziel dieses Projekts ist die Umsetzung eines einfachen Byte-Editors mit modulare
 - Speicherverwaltung
 - modulare Programmentwicklung
 - Kommandozeileninteraktion
-"""
