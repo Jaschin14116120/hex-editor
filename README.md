@@ -57,7 +57,7 @@ README.md
 
 Das Programm kann mit einem C++-Compiler (z. B. g++) kompiliert werden.
 
-g++ src/main.cpp src/fileio.cpp src/formatter.cpp src/editor.cpp -o editor
+g++ src/main.cpp src/fileio.cpp src/formatter.cpp src/editor.cpp -o hex-editor
 
 ---
 
@@ -65,7 +65,7 @@ g++ src/main.cpp src/fileio.cpp src/formatter.cpp src/editor.cpp -o editor
 
 Eine Datei kann entweder direkt beim Start übergeben werden:
 
-./editor testfiles/sample.bin
+./hex-editor testfiles/sample.bin
 
 oder das Programm fragt nach dem Dateipfad.
 
