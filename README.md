@@ -34,19 +34,22 @@ Die Datei wird beim Start vollständig in einen Bytepuffer geladen. Alle Bearbei
 
 ## Projektstruktur
 
-hex-editor/
-├── src/
-│   ├── main.cpp
-│   ├── fileio.cpp
-│   ├── fileio.h
-│   ├── formatter.cpp
-│   ├── formatter.h
-│   ├── editor.cpp
-│   └── editor.h
-├── testfiles/
-│   └── sample.bin
-├── README.md
-└── .gitignore
+hex-editor
+
+src  
+- main.cpp  
+- fileio.cpp  
+- fileio.h  
+- formatter.cpp  
+- formatter.h  
+- editor.cpp  
+- editor.h  
+
+testfiles  
+- sample.bin  
+
+README.md  
+.gitignore
 
 ---
 
