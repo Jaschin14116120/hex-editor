@@ -26,7 +26,7 @@ Modul | Aufgabe
 main |   Benutzeroberfläche (CLI) und Befehlssteuerung
 fileio |   Laden und Speichern von Binärdateien
 formatter |   Darstellung der Bytes in HEX / BIN / ASCII
-editor | B  earbeitung einzelner Bytes im Speicherpuffer
+editor |   Bearbeitung einzelner Bytes im Speicherpuffer
 
 Die Datei wird beim Start vollständig in einen Bytepuffer geladen. Alle Bearbeitungen erfolgen zunächst im Arbeitsspeicher und werden erst durch einen Speicherbefehl dauerhaft in die Datei geschrieben.
 
@@ -34,22 +34,19 @@ Die Datei wird beim Start vollständig in einen Bytepuffer geladen. Alle Bearbei
 
 ## Projektstruktur
 
-hex-editor
-
-src  
-- main.cpp  
-- fileio.cpp  
-- fileio.h  
-- formatter.cpp  
-- formatter.h  
-- editor.cpp  
-- editor.h  
-
-testfiles  
-- sample.bin  
-
-README.md  
-.gitignore
+hex-editor/
+├── src/
+│   ├── main.cpp
+│   ├── fileio.cpp
+│   ├── fileio.h
+│   ├── formatter.cpp
+│   ├── formatter.h
+│   ├── editor.cpp
+│   └── editor.h
+├── testfiles/
+│   └── sample.bin
+├── README.md
+└── .gitignore
 
 ---
 
@@ -57,7 +54,7 @@ README.md
 
 Das Programm kann mit einem C++-Compiler (z. B. g++) kompiliert werden.
 
-g++ main.cpp fileio.cpp formatter.cpp editor.cpp -o editor
+g++ src/main.cpp src/fileio.cpp src/formatter.cpp src/editor.cpp -o editor
 
 ---
 
@@ -65,7 +62,7 @@ g++ main.cpp fileio.cpp formatter.cpp editor.cpp -o editor
 
 Eine Datei kann entweder direkt beim Start übergeben werden:
 
-./editor datei.bin
+./editor testfiles/sample.bin
 
 oder das Programm fragt nach dem Dateipfad.
 
@@ -125,6 +122,7 @@ Zur Überprüfung der Implementierung wurden mehrere Testfälle durchgeführt:
 - Speichern mit save und saveas
 - Prüfung fehlerhafter Eingaben
 
+  IIm Ordner testfiles befindet sich eine Beispiel-Datei, mit der das Programm direkt getestet werden kann.
 ---
 
 ## Bekannte Einschränkungen
